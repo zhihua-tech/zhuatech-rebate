@@ -1,0 +1,419 @@
+{
+  "slug": "rebate",
+  "pkg": "rebate",
+  "name": "知华渠道返利结算",
+  "subtitle": "协议、销售回款、返利核算与结算单",
+  "accent": "#335e87",
+  "modules": [
+    {
+      "key": "partners",
+      "label": "渠道伙伴",
+      "description": "渠道等级与结算资料",
+      "initial": "ACTIVE",
+      "editable": true,
+      "creatable": true,
+      "fields": [
+        {
+          "key": "name",
+          "label": "伙伴名称",
+          "type": "text",
+          "required": true,
+          "ref": null,
+          "options": [],
+          "min": null,
+          "max": null
+        },
+        {
+          "key": "contact",
+          "label": "联系人",
+          "type": "text",
+          "required": true,
+          "ref": null,
+          "options": [],
+          "min": null,
+          "max": null
+        },
+        {
+          "key": "account",
+          "label": "结算账户描述",
+          "type": "text",
+          "required": true,
+          "ref": null,
+          "options": [],
+          "min": null,
+          "max": null
+        }
+      ],
+      "actions": []
+    },
+    {
+      "key": "programs",
+      "label": "返利协议",
+      "description": "以实收销售额为基础的分档返利规则",
+      "initial": "DRAFT",
+      "editable": true,
+      "creatable": true,
+      "fields": [
+        {
+          "key": "name",
+          "label": "协议名称",
+          "type": "text",
+          "required": true,
+          "ref": null,
+          "options": [],
+          "min": null,
+          "max": null
+        },
+        {
+          "key": "start",
+          "label": "有效期起",
+          "type": "date",
+          "required": true,
+          "ref": null,
+          "options": [],
+          "min": null,
+          "max": null
+        },
+        {
+          "key": "end",
+          "label": "有效期止",
+          "type": "date",
+          "required": true,
+          "ref": null,
+          "options": [],
+          "min": null,
+          "max": null
+        },
+        {
+          "key": "threshold",
+          "label": "达档销售额",
+          "type": "money",
+          "required": true,
+          "ref": null,
+          "options": [],
+          "min": "0",
+          "max": "999999999"
+        },
+        {
+          "key": "baseRate",
+          "label": "基础返利率 %",
+          "type": "number",
+          "required": true,
+          "ref": null,
+          "options": [],
+          "min": "0",
+          "max": "100"
+        },
+        {
+          "key": "bonusRate",
+          "label": "达档返利率 %",
+          "type": "number",
+          "required": true,
+          "ref": null,
+          "options": [],
+          "min": "0",
+          "max": "100"
+        }
+      ],
+      "actions": [
+        {
+          "key": "activate",
+          "label": "审批生效",
+          "from": [
+            "DRAFT"
+          ],
+          "to": "ACTIVE",
+          "role": "REVIEWER",
+          "separate": true,
+          "fields": []
+        },
+        {
+          "key": "retire",
+          "label": "终止新增",
+          "from": [
+            "ACTIVE"
+          ],
+          "to": "RETIRED",
+          "role": "REVIEWER",
+          "separate": false,
+          "fields": []
+        }
+      ]
+    },
+    {
+      "key": "sales",
+      "label": "销售核销",
+      "description": "回款确认与销退净额",
+      "initial": "DRAFT",
+      "editable": true,
+      "creatable": true,
+      "fields": [
+        {
+          "key": "partner",
+          "label": "伙伴",
+          "type": "ref",
+          "required": true,
+          "ref": "partners",
+          "options": [],
+          "min": null,
+          "max": null
+        },
+        {
+          "key": "program",
+          "label": "协议",
+          "type": "ref",
+          "required": true,
+          "ref": "programs",
+          "options": [],
+          "min": null,
+          "max": null
+        },
+        {
+          "key": "soldAt",
+          "label": "销售日期",
+          "type": "date",
+          "required": true,
+          "ref": null,
+          "options": [],
+          "min": null,
+          "max": null
+        },
+        {
+          "key": "amount",
+          "label": "销售金额",
+          "type": "money",
+          "required": true,
+          "ref": null,
+          "options": [],
+          "min": "0.01",
+          "max": "999999999"
+        },
+        {
+          "key": "invoice",
+          "label": "业务发票号",
+          "type": "text",
+          "required": true,
+          "ref": null,
+          "options": [],
+          "min": null,
+          "max": null
+        }
+      ],
+      "actions": [
+        {
+          "key": "collect",
+          "label": "回款核销",
+          "from": [
+            "DRAFT"
+          ],
+          "to": "PAID",
+          "role": "OPERATOR",
+          "separate": false,
+          "fields": [
+            {
+              "key": "amount",
+              "label": "核销金额",
+              "type": "money",
+              "required": true,
+              "ref": null,
+              "options": [],
+              "min": "0.01",
+              "max": "999999999"
+            }
+          ]
+        },
+        {
+          "key": "return",
+          "label": "销售退货",
+          "from": [
+            "PAID"
+          ],
+          "to": "PAID",
+          "role": "OPERATOR",
+          "separate": false,
+          "fields": [
+            {
+              "key": "amount",
+              "label": "退款金额",
+              "type": "money",
+              "required": true,
+              "ref": null,
+              "options": [],
+              "min": "0.01",
+              "max": "999999999"
+            }
+          ]
+        },
+        {
+          "key": "cancel",
+          "label": "作废",
+          "from": [
+            "DRAFT"
+          ],
+          "to": "CANCELLED",
+          "role": "OPERATOR",
+          "separate": false,
+          "fields": []
+        }
+      ]
+    },
+    {
+      "key": "settlements",
+      "label": "返利结算单",
+      "description": "自动汇集未结算实收销售并应用档位",
+      "initial": "DRAFT",
+      "editable": true,
+      "creatable": true,
+      "fields": [
+        {
+          "key": "partner",
+          "label": "伙伴",
+          "type": "ref",
+          "required": true,
+          "ref": "partners",
+          "options": [],
+          "min": null,
+          "max": null
+        },
+        {
+          "key": "program",
+          "label": "协议",
+          "type": "ref",
+          "required": true,
+          "ref": "programs",
+          "options": [],
+          "min": null,
+          "max": null
+        },
+        {
+          "key": "from",
+          "label": "结算开始",
+          "type": "date",
+          "required": true,
+          "ref": null,
+          "options": [],
+          "min": null,
+          "max": null
+        },
+        {
+          "key": "to",
+          "label": "结算结束",
+          "type": "date",
+          "required": true,
+          "ref": null,
+          "options": [],
+          "min": null,
+          "max": null
+        }
+      ],
+      "actions": [
+        {
+          "key": "calculate",
+          "label": "锁定并计算",
+          "from": [
+            "DRAFT"
+          ],
+          "to": "CALCULATED",
+          "role": "OPERATOR",
+          "separate": false,
+          "fields": []
+        },
+        {
+          "key": "approve",
+          "label": "审批结算",
+          "from": [
+            "CALCULATED"
+          ],
+          "to": "APPROVED",
+          "role": "REVIEWER",
+          "separate": true,
+          "fields": []
+        },
+        {
+          "key": "reject",
+          "label": "驳回并释放",
+          "from": [
+            "CALCULATED"
+          ],
+          "to": "DRAFT",
+          "role": "REVIEWER",
+          "separate": true,
+          "fields": []
+        },
+        {
+          "key": "pay",
+          "label": "付款核销",
+          "from": [
+            "APPROVED"
+          ],
+          "to": "PAID",
+          "role": "REVIEWER",
+          "separate": true,
+          "fields": [
+            {
+              "key": "reference",
+              "label": "付款凭证号",
+              "type": "text",
+              "required": true,
+              "ref": null,
+              "options": [],
+              "min": null,
+              "max": null
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "key": "entries",
+      "label": "返利明细",
+      "description": "每笔销售的计提金额、净销售与结算占用",
+      "initial": "POSTED",
+      "editable": false,
+      "creatable": false,
+      "fields": [
+        {
+          "key": "settlement",
+          "label": "结算单",
+          "type": "ref",
+          "required": true,
+          "ref": "settlements",
+          "options": [],
+          "min": null,
+          "max": null
+        },
+        {
+          "key": "sale",
+          "label": "销售单",
+          "type": "ref",
+          "required": true,
+          "ref": "sales",
+          "options": [],
+          "min": null,
+          "max": null
+        },
+        {
+          "key": "net",
+          "label": "销售净额",
+          "type": "money",
+          "required": true,
+          "ref": null,
+          "options": [],
+          "min": "0",
+          "max": "999999999"
+        },
+        {
+          "key": "rebate",
+          "label": "返利金额",
+          "type": "money",
+          "required": true,
+          "ref": null,
+          "options": [],
+          "min": "0",
+          "max": "999999999"
+        }
+      ],
+      "actions": []
+    }
+  ]
+}

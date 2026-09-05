@@ -1,0 +1,232 @@
+[
+  {
+    "op": "create",
+    "as": "partner",
+    "module": "partners",
+    "data": {
+      "name": "华东渠道服务商",
+      "contact": "结算联系人（演示）",
+      "account": "企业对公结算"
+    }
+  },
+  {
+    "op": "create",
+    "as": "program",
+    "module": "programs",
+    "data": {
+      "name": "季度回款返利",
+      "start": "$today-2",
+      "end": "$today+30",
+      "threshold": 1000,
+      "baseRate": 3,
+      "bonusRate": 5
+    }
+  },
+  {
+    "op": "action",
+    "target": "program",
+    "action": "activate",
+    "data": {},
+    "role": "reviewer"
+  },
+  {
+    "op": "create",
+    "as": "sale1",
+    "module": "sales",
+    "data": {
+      "partner": "$partner.id",
+      "program": "$program.id",
+      "soldAt": "$today",
+      "amount": 1000,
+      "invoice": "SALE-001"
+    }
+  },
+  {
+    "op": "create",
+    "as": "duplicate",
+    "module": "sales",
+    "data": {
+      "partner": "$partner.id",
+      "program": "$program.id",
+      "soldAt": "$today",
+      "amount": 1000,
+      "invoice": "SALE-001"
+    },
+    "error": 409
+  },
+  {
+    "op": "action",
+    "target": "sale1",
+    "action": "collect",
+    "data": {
+      "amount": 900
+    },
+    "error": 409
+  },
+  {
+    "op": "action",
+    "target": "sale1",
+    "action": "collect",
+    "data": {
+      "amount": 1000
+    }
+  },
+  {
+    "op": "create",
+    "as": "sale2",
+    "module": "sales",
+    "data": {
+      "partner": "$partner.id",
+      "program": "$program.id",
+      "soldAt": "$today",
+      "amount": 500,
+      "invoice": "SALE-002"
+    }
+  },
+  {
+    "op": "action",
+    "target": "sale2",
+    "action": "collect",
+    "data": {
+      "amount": 500
+    }
+  },
+  {
+    "op": "action",
+    "target": "sale2",
+    "action": "return",
+    "data": {
+      "amount": 100
+    }
+  },
+  {
+    "op": "action",
+    "target": "sale2",
+    "action": "return",
+    "data": {
+      "amount": 500
+    },
+    "error": 409
+  },
+  {
+    "op": "create",
+    "as": "settlement",
+    "module": "settlements",
+    "data": {
+      "partner": "$partner.id",
+      "program": "$program.id",
+      "from": "$today-2",
+      "to": "$today+30"
+    }
+  },
+  {
+    "op": "action",
+    "target": "settlement",
+    "action": "calculate",
+    "data": {}
+  },
+  {
+    "op": "check",
+    "target": "settlement",
+    "expect": {
+      "data.netSales": 1400,
+      "data.rate": 5,
+      "data.rebate": 70
+    }
+  },
+  {
+    "op": "action",
+    "target": "sale1",
+    "action": "return",
+    "data": {
+      "amount": 10
+    },
+    "error": 409
+  },
+  {
+    "op": "create",
+    "as": "duplicateSettlement",
+    "module": "settlements",
+    "data": {
+      "partner": "$partner.id",
+      "program": "$program.id",
+      "from": "$today-2",
+      "to": "$today+30"
+    }
+  },
+  {
+    "op": "action",
+    "target": "duplicateSettlement",
+    "action": "calculate",
+    "data": {},
+    "error": 409
+  },
+  {
+    "op": "action",
+    "target": "settlement",
+    "action": "reject",
+    "data": {},
+    "role": "reviewer"
+  },
+  {
+    "op": "action",
+    "target": "sale1",
+    "action": "return",
+    "data": {
+      "amount": 100
+    }
+  },
+  {
+    "op": "action",
+    "target": "settlement",
+    "action": "calculate",
+    "data": {}
+  },
+  {
+    "op": "check",
+    "target": "settlement",
+    "expect": {
+      "data.netSales": 1300,
+      "data.rebate": 65
+    }
+  },
+  {
+    "op": "action",
+    "target": "settlement",
+    "action": "approve",
+    "data": {},
+    "role": "reviewer"
+  },
+  {
+    "op": "action",
+    "target": "settlement",
+    "action": "pay",
+    "data": {
+      "reference": "RB-PAY-001"
+    },
+    "role": "reviewer"
+  },
+  {
+    "op": "check",
+    "target": "settlement",
+    "expect": {
+      "state": "PAID"
+    }
+  },
+  {
+    "op": "count",
+    "module": "entries",
+    "count": 2,
+    "where": {
+      "state": "POSTED"
+    }
+  },
+  {
+    "op": "count",
+    "module": "entries",
+    "count": 2,
+    "where": {
+      "state": "VOID"
+    }
+  }
+]
