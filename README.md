@@ -1,5 +1,7 @@
 # 知华渠道返利结算
 
+[简体中文](README.md) | [English](README.en.md)
+
 > 让每笔返利都有销售、回款和审批依据。
 
 由 [知华科技（上海如静知华信息科技有限公司）](https://www.zhuatech.cn/) 提供的 Java + H5 前后端分离企业软件社区源码版，数据库为 MySQL。
