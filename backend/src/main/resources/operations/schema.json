@@ -1,0 +1,97 @@
+{
+  "slug": "rebate",
+  "title": "退货冲减与分段阶梯返利",
+  "fields": [
+    {
+      "key": "id",
+      "label": "记录编号",
+      "type": "ID"
+    },
+    {
+      "key": "sales",
+      "label": "计入销售额",
+      "type": "NUMBER",
+      "scale": 2,
+      "min": "0",
+      "max": "1000000000000"
+    },
+    {
+      "key": "returns",
+      "label": "退货额",
+      "type": "NUMBER",
+      "scale": 2,
+      "min": "0",
+      "max": "1000000000000"
+    },
+    {
+      "key": "threshold",
+      "label": "阶梯分界",
+      "type": "NUMBER",
+      "scale": 2,
+      "min": "0",
+      "max": "1000000000000"
+    },
+    {
+      "key": "basePct",
+      "label": "基础比例%",
+      "type": "NUMBER",
+      "scale": 4,
+      "min": "0",
+      "max": "100"
+    },
+    {
+      "key": "upperPct",
+      "label": "上段比例%",
+      "type": "NUMBER",
+      "scale": 4,
+      "min": "0",
+      "max": "100"
+    },
+    {
+      "key": "cap",
+      "label": "返利封顶",
+      "type": "NUMBER",
+      "scale": 2,
+      "min": "0",
+      "max": "1000000000000"
+    }
+  ],
+  "columns": [
+    {
+      "key": "eligibleSales",
+      "label": "冲减后销售额"
+    },
+    {
+      "key": "grossRebate",
+      "label": "封顶前返利"
+    },
+    {
+      "key": "payableRebate",
+      "label": "候选返利"
+    },
+    {
+      "key": "cappedAmount",
+      "label": "封顶扣减"
+    }
+  ],
+  "description": "先扣退货，再分段计算基础和加速返利，并输出封顶前后金额。",
+  "owner": "上海如静知华信息科技有限公司",
+  "website": "https://www.zhuatech.cn/",
+  "authorization": "商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。",
+  "version": 1,
+  "notes": "输入均须为已获授权的同口径数据。金额固定人民币元；比例为百分数。核算结果只用于复核，未审批、未写库、未发起外部调用，也未触发付款、签名、资料销毁或设备控制。建议不构成法律、安全、会计或碳核证结论。",
+  "sample": {
+    "asOf": "2026-10-23",
+    "records": [
+      {
+        "id": "ITEM-001",
+        "sales": "12000",
+        "returns": "2000",
+        "threshold": "5000",
+        "basePct": "2",
+        "upperPct": "4",
+        "cap": "500"
+      }
+    ]
+  }
+}

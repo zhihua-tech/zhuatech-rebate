@@ -1,0 +1,57 @@
+[
+  {
+    "patch": {},
+    "expected": {
+      "decision": "PASS",
+      "eligibleSales": "#10000",
+      "grossRebate": "#300",
+      "payableRebate": "#300",
+      "cappedAmount": "#0"
+    },
+    "error": false
+  },
+  {
+    "patch": {
+      "cap": "100"
+    },
+    "expected": {
+      "decision": "REVIEW",
+      "payableRebate": "#100"
+    },
+    "error": false
+  },
+  {
+    "patch": {
+      "returns": "12000"
+    },
+    "expected": {
+      "decision": "PASS",
+      "eligibleSales": "#0"
+    },
+    "error": false
+  },
+  {
+    "patch": {
+      "returns": "12001"
+    },
+    "expected": {},
+    "error": true
+  },
+  {
+    "patch": {
+      "upperPct": "1"
+    },
+    "expected": {},
+    "error": true
+  },
+  {
+    "patch": {
+      "threshold": "0"
+    },
+    "expected": {
+      "decision": "PASS",
+      "grossRebate": "#400"
+    },
+    "error": false
+  }
+]
