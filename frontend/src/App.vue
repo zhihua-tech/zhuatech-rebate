@@ -2,6 +2,8 @@
 <script setup>
 import {ref,computed,onMounted} from 'vue';
 import {stateNames,labels,canAct,format,validField} from './model.js';
+import {workQueues,queueCount,exportPath} from './work-queues.js';
+const applied=ref(null);
 const title='知华渠道返利结算', subtitle='协议、销售回款、返利核算与结算单';
 const token=ref(sessionStorage.getItem('rebate-session')||''),user=ref(null),catalog=ref(null),dashboard=ref(null);
 const username=ref(''),password=ref(''),busy=ref(false),error=ref(''),notice=ref('');
@@ -24,13 +26,16 @@ async function guarded(fn){if(busy.value)return;busy.value=true;error.value='';t
 async function login(){await guarded(async()=>{const r=await request('/auth/login',{method:'POST',body:{username:username.value,password:password.value}});token.value=r.token;user.value=r.user;sessionStorage.setItem('rebate-session',r.token);password.value='';await load();});}
 async function logout(){await guarded(async()=>{await request('/auth/logout',{method:'POST',body:{}});token.value='';user.value=null;sessionStorage.removeItem('rebate-session');});}
 async function load(){user.value=await request('/me');catalog.value=await request('/catalog');if(mode.value==='admin'&&user.value.role!=='ADMIN')mode.value='work';section.value=mode.value==='admin'?'users':'dashboard';await refresh();}
-async function refresh(){
+async function refresh(filters=applied.value??{q:query.value,state:state.value}){
  if(section.value==='dashboard'){dashboard.value=await request('/dashboard');return;}
  if(section.value==='users'){users.value=await request('/admin/users');return;}
  if(section.value==='audit'){audit.value=await request('/admin/audit');return;}
- const r=await request('/records?'+new URLSearchParams({module:section.value,q:query.value,state:state.value,page:String(page.value),size:'20'}));rows.value=r.items;total.value=r.total;for(const field of columns.value)if(field.type==='ref')await loadOptions(field);
+ const {q,state:filterState}=filters;
+ const r=await request('/records?'+new URLSearchParams({module:section.value,q,state:filterState,page:String(page.value),size:'20'}));
+ applied.value={q,state:filterState};rows.value=r.items;total.value=r.total;for(const field of columns.value)if(field.type==='ref')await loadOptions(field);
 }
-async function navigate(key){if(busy.value)return;section.value=key;page.value=1;query.value='';state.value='';selected.value=null;await guarded(refresh);}
+async function navigate(key,initialState=''){if(busy.value)return;section.value=key;page.value=1;query.value='';state.value=initialState;applied.value=null;rows.value=[];total.value=0;selected.value=null;await guarded(refresh);}
+function applyFilters(){if(busy.value)return;page.value=1;return guarded(()=>refresh({q:query.value,state:state.value}));}
 async function switchMode(next){if(busy.value)return;mode.value=next;window.history.replaceState({},'',next==='admin'?'/admin':'/work');await navigate(next==='admin'?'users':'dashboard');}
 async function openDetail(row){await guarded(async()=>{selected.value=await request('/records/'+row.id);history.value=await request('/records/'+row.id+'/history');attachments.value=await request('/attachments/'+row.id);});}
 async function loadOptions(field,q=''){
@@ -56,7 +61,7 @@ async function submit(){
  const r=await request(path,{method,body:payload,key:d.key});dialog.value=null;await refresh();selected.value=r.record;history.value=await request('/records/'+r.record.id+'/history');attachments.value=await request('/attachments/'+r.record.id);message('操作完成，已保存业务记录与审计日志');
  });
 }
-async function exportCsv(){await guarded(async()=>{const blob=await request('/export/'+section.value,{raw:true});download(blob,'rebate-'+section.value+'.csv');});}
+async function exportCsv(){if(!applied.value)return;await guarded(async()=>{const blob=await request(exportPath(section.value,applied.value),{raw:true});download(blob,'rebate-'+section.value+'.csv');});}
 function download(blob,name){const url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
 async function upload(event){const file=event.target.files[0];if(!file)return;await guarded(async()=>{const body=new FormData();body.append('file',file);await request('/attachments/'+selected.value.id,{method:'POST',body});attachments.value=await request('/attachments/'+selected.value.id);history.value=await request('/records/'+selected.value.id+'/history');message('附件已保存并记录 SHA-256 摘要');});event.target.value='';}
 async function downloadFile(file){await guarded(async()=>{const blob=await request('/attachments/download/'+file.id,{raw:true});download(blob,file.filename);});}
@@ -91,12 +96,13 @@ onMounted(async()=>{if(token.value)await guarded(load);});
     <div class="page-heading"><div><div class="breadcrumb">工作空间 <span>/</span> {{currentTitle}}</div><h1>{{currentTitle}}</h1><p>{{currentDescription}}</p></div><div class="heading-actions"><button :disabled="busy" @click="guarded(refresh)">刷新</button><button v-if="module?.creatable&&user.role!=='VIEWER'" class="primary" :disabled="busy" @click="openForm('create')">＋ 新建{{module.label}}</button><button v-if="section==='users'" class="primary" :disabled="busy" @click="newUser">＋ 新建账号</button></div></div>
     <div v-if="error" class="error global-error" role="alert">{{error}}<button class="text-button" @click="error=''">关闭</button></div><div v-if="notice" class="notice" role="status">{{notice}}</div>
     <template v-if="section==='dashboard'&&dashboard">
+     <section class="panel toolbar" aria-label="常用业务队列"><strong>常用队列</strong><button v-for="queue in workQueues" :key="queue.module+queue.state" :disabled="busy" @click="navigate(queue.module,queue.state)">{{queue.label}}（{{queueCount(dashboard.modules,queue)}}）</button></section>
      <div class="metric-strip"><div v-for="(value,key) in dashboard.metrics" :key="key" class="metric"><span>{{key}}</span><strong>{{format(value)}}</strong><small>当前企业业务记录汇总</small></div></div>
      <div class="dashboard-grid"><section class="panel"><div class="panel-heading"><h2>业务处理概况</h2><span class="muted">点击模块进入业务列表</span></div><button v-for="item in dashboard.modules" :key="item.key" class="module-row" :disabled="busy" @click="navigate(item.key)"><div><strong>{{item.label}}</strong><span>{{item.states.map(s=>format(s.state)+' '+s.total).join(' · ')||'暂无业务记录'}}</span></div><b>{{item.count}}<small>条记录 →</small></b></button></section><section class="panel"><div class="panel-heading"><h2>最近操作</h2><span class="muted">审计留痕</span></div><div class="activity" v-for="(item,i) in dashboard.recent.slice(0,7)" :key="i"><span class="activity-dot"></span><div><strong>{{item.actor}} <span>{{item.action}}</span></strong><p>{{item.remark}}</p><time>{{prettyTime(item.created_at)}}</time></div></div><p v-if="!dashboard.recent.length" class="empty">暂无操作记录</p></section></div>
      <div class="info-band"><strong>操作提示</strong><span>先维护基础资料，再发起业务单据。审批必须由另一位审核人员完成；自动流水仅供查阅，不能手动改写。</span></div>
     </template>
     <section v-else-if="module" class="panel">
-     <form class="toolbar" @submit.prevent="page=1;guarded(refresh)"><input v-model="query" aria-label="搜索业务记录" placeholder="搜索编号、名称或业务内容"><select v-model="state" aria-label="状态筛选" @change="page=1;guarded(refresh)"><option value="">全部状态</option><option v-for="s in states" :key="s" :value="s">{{format(s)}}</option></select><button :disabled="busy">查询</button><button type="button" class="push-right" @click="exportCsv">导出 CSV</button></form>
+     <form class="toolbar" @submit.prevent="applyFilters()"><input v-model="query" aria-label="搜索业务记录" placeholder="搜索编号、名称或业务内容"><select v-model="state" aria-label="状态筛选" @change="applyFilters()"><option value="">全部状态</option><option v-for="s in states" :key="s" :value="s">{{format(s)}}</option></select><button :disabled="busy">查询</button><button type="button" class="push-right" :disabled="busy||!applied" title="导出最近一次成功查询的全部匹配记录，不限当前页" @click="exportCsv">导出查询结果 CSV</button></form>
      <div class="table-scroll"><table><thead><tr><th>业务编号</th><th v-for="f in columns" :key="f.key">{{f.label}}</th><th>状态</th><th>更新时间</th><th>操作</th></tr></thead><tbody><tr v-for="row in rows" :key="row.id"><td><button class="record-link" :disabled="busy" @click="openDetail(row)">{{row.code}}</button><small class="record-version">版本 {{row.version}}</small></td><td v-for="f in columns" :key="f.key">{{display(row,f)}}</td><td><span class="status" :data-state="row.state">{{format(row.state)}}</span></td><td class="muted nowrap">{{prettyTime(row.updatedAt)}}</td><td><button class="text-button" :disabled="busy" @click="openDetail(row)">查看</button></td></tr></tbody></table><div v-if="!rows.length" class="empty"><strong>暂无符合条件的记录</strong><p>{{module.creatable?'请调整搜索条件，或新建一条业务记录。':'业务完成后，系统会自动生成可追溯流水。'}}</p></div></div>
      <div class="pagination"><span>共 {{total}} 条 · 第 {{page}} 页</span><div><button :disabled="page===1||busy" @click="page--;guarded(refresh)">上一页</button><button :disabled="page*20>=total||busy" @click="page++;guarded(refresh)">下一页</button></div></div>
     </section>

@@ -199,6 +199,25 @@ class EnterpriseTests {
  /**
   * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
   */
+ @Test @Order(99) void filteredCsvMatchesListAcrossPagesAndIsolatesTenants()throws Exception{
+  User owner=auth.current("Bearer "+tokens.get("admin"));String module=e.spec().modules().getFirst().key();
+  String marker="CSV_25%!";
+  for(int i=0;i<22;i++)e.system(owner,module,"EXPORT-"+i,"ACTIVE",Map.of("note",marker));
+  e.system(owner,module,"WRONG-STATE","CLOSED",Map.of("note",marker));
+  e.system(owner,module,"WRONG-TEXT","ACTIVE",Map.of("note","CSVx25abc!"));
+  e.system(new User("fixture","other-csv-tenant","other","ADMIN"),module,"OTHER-TENANT","ACTIVE",Map.of("note",marker));
+  String filters="?state=ACTIVE&q="+URLEncoder.encode(marker,StandardCharsets.UTF_8);
+  var url=URI.create("http://localhost:"+port+"/api/export/"+module+filters);
+  var request=HttpRequest.newBuilder(url).header("Authorization","Bearer "+tokens.get("viewer")).build();
+  var csv=client.send(request,HttpResponse.BodyHandlers.ofString());assertEquals(200,csv.statusCode());
+  var lines=csv.body().lines().skip(1).toList();assertEquals(22,lines.size());
+  var listed=e.page(owner,module,marker,"ACTIVE",1,100).items();assertEquals(22,listed.size());
+  for(int i=0;i<22;i++)assertTrue(lines.get(i).startsWith("\""+listed.get(i).code()+"\","));
+  assertEquals(401,client.send(HttpRequest.newBuilder(url).build(),HttpResponse.BodyHandlers.ofString()).statusCode());
+  var empty=HttpRequest.newBuilder(URI.create(url.toString().replace("ACTIVE","NO_MATCH"))).header("Authorization","Bearer "+tokens.get("viewer")).build();
+  var noMatches=client.send(empty,HttpResponse.BodyHandlers.ofString());assertEquals(200,noMatches.statusCode());assertEquals(1L,noMatches.body().lines().count());
+ }
+ /** 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。 */
  @Test @Order(9) void exportAndAttachmentReadAuthorization()throws Exception{
   String module=e.spec().modules().getFirst().key();
   var request=HttpRequest.newBuilder(URI.create("http://localhost:"+port+"/api/export/"+module)).header("Authorization","Bearer "+tokens.get("viewer")).GET().build();

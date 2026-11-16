@@ -94,7 +94,8 @@ public class Api {
  /**
   * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
   */
- @GetMapping(value="/export/{module}",produces="text/csv;charset=UTF-8") ResponseEntity<String> csv(@RequestHeader(value="Authorization",required=false) String h,@PathVariable String module){return ResponseEntity.ok().header("Content-Disposition","attachment; filename=\""+module+".csv\"").body(e.csv(user(h),module));}
+ @GetMapping(value="/export/{module}",produces="text/csv;charset=UTF-8") ResponseEntity<String> csv(@RequestHeader(value="Authorization",required=false) String h,@PathVariable String module,
+     @RequestParam(defaultValue="") String q,@RequestParam(defaultValue="") String state){return ResponseEntity.ok().header("Content-Disposition","attachment; filename=\""+module+".csv\"").body(e.csv(user(h),module,q,state));}
  /**
   * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
   */

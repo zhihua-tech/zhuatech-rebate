@@ -13,6 +13,13 @@ import static cn.zhuatech.rebate.Model.*;
  * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
  */
 @Service public class Engine {
+ static final String MATCH_RECORDS=" FROM business_record WHERE tenant=? AND module=? AND (code LIKE ? ESCAPE '!' OR payload LIKE ? ESCAPE '!') AND (?='' OR state=?)";
+ static final String RECENT_FIRST=" ORDER BY updated_at DESC,sequence_no DESC";
+ /** Bind tenant and literal keyword filters for lists and CSV. 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。 */
+ private static Object[] filterArgs(User u,String module,String query,String state){
+  String pattern="%"+query.replace("!","!!").replace("%","!%").replace("_","!_")+"%";
+  return new Object[]{u.tenant(),module,pattern,pattern,state,state};
+ }
  final JdbcTemplate db;final ObjectMapper json;final Catalog catalog;final Domain domain;
  /**
   * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
@@ -57,12 +64,10 @@ public Spec spec(){return catalog.spec;}
   */
  public Page page(User u,String module,String query,String state,int page,int size){
   catalog.spec.module(module);if(page<1||page>1000000||size<1||size>100)throw new Failure(400,"分页参数错误");
-  String like="%"+query.replace("\\","\\\\").replace("%","\\%").replace("_","\\_")+"%";
-  String sql=" FROM business_record WHERE tenant=? AND module=? AND (code LIKE ? OR payload LIKE ?) AND (?='' OR state=?)";
-  Object[] args={u.tenant(),module,like,like,state,state};
-  long total=db.queryForObject("SELECT COUNT(*)"+sql,Long.class,args);
+  Object[] args=filterArgs(u,module,query,state);
+  long total=db.queryForObject("SELECT COUNT(*)"+MATCH_RECORDS,Long.class,args);
   var list=new ArrayList<Object>(Arrays.asList(args));list.add(size);list.add((page-1)*size);
-  return new Page(db.query("SELECT *"+sql+" ORDER BY updated_at DESC,sequence_no DESC LIMIT ? OFFSET ?",(r,n)->row(r),list.toArray()),total,page,size);
+  return new Page(db.query("SELECT *"+MATCH_RECORDS+RECENT_FIRST+" LIMIT ? OFFSET ?",(r,n)->row(r),list.toArray()),total,page,size);
  }
  /**
   * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
@@ -188,10 +193,15 @@ public Spec spec(){return catalog.spec;}
  /**
   * 商业授权或定制开发请微信添加微信号zhuatech或zhuatech2进行咨询。
   */
- public String csv(User u,String module){
+ public String csv(User u,String module,String query,String state){
   var m=catalog.spec.module(module);var result=new StringBuilder("\uFEFF编号,状态,版本");
   for(var f:m.fields())result.append(',').append(cell(f.label()));result.append(",扩展业务数据\n");
-  for(Row r:all(u,module)){result.append(cell(r.code())).append(',').append(cell(r.state())).append(',').append(r.version());for(var f:m.fields())result.append(',').append(cell(txt(r.data(),f.key())));result.append(',').append(cell(encode(r.data()))).append('\n');}
+  db.query("SELECT *"+MATCH_RECORDS+RECENT_FIRST, (org.springframework.jdbc.core.RowCallbackHandler) rs->{
+   Row r=row(rs);
+   result.append(cell(r.code())).append(',').append(cell(r.state())).append(',').append(r.version());
+   for(var f:m.fields())result.append(',').append(cell(txt(r.data(),f.key())));
+   result.append(',').append(cell(encode(r.data()))).append('\n');
+  },filterArgs(u,module,query,state));
   return result.toString();
  }
  /**

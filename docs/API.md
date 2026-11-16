@@ -16,7 +16,7 @@
 | GET /api/records/{id} | 单据明细及派生字段 |
 | POST /api/records/{id}/actions/{action} | 执行业务，body 为 version、data、remark |
 | GET /api/records/{id}/history | 单据所有变更快照 |
-| GET /api/export/{module} | CSV 导出，防止表格公式注入 |
+| GET /api/export/{module}?q=...&state=... | 按列表条件导出 CSV；两个参数均可省略 |
 | POST /api/attachments/{recordId} | multipart 的 file 字段 |
 | GET /api/attachments/{recordId} | 附件摘要列表 |
 | GET /api/attachments/download/{attachmentId} | 鉴权附件下载 |
@@ -25,6 +25,10 @@
 | GET /api/admin/audit | 最近 200 条业务及管理审计 |
 
 关联字段必须填写当前企业下真实记录的 UUID，不能传其他企业 ID。版本来自最近一次 GET；出现 409 应重新读取并核对业务，不能盲目重试旧版本。400 表示输入不符合类型/范围，401 表示未登录，403 表示角色不允许，404 表示记录不可见，409 表示业务冲突，429 表示登录暂时锁定。
+
+## 常用队列与筛选导出
+
+从业务概览点击「待审批返利结算」或「待付款返利结算」可进入对应状态列表；数量取自当前企业的看板。列表可继续按关键字查询。「导出查询结果 CSV」导出最近一次成功查询所匹配的全部页，未提交的搜索框文字不改变导出范围。结果按列表顺序排列，无匹配时仅返回表头。
 
 ## 动作字典
 
